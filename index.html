@@ -1,0 +1,559 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mic + Backing Recorder</title>
+
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #1a1a1a;
+      --accent: #2563eb;
+      --border: #e5e7eb;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    h2 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0;
+      text-align: center;
+      letter-spacing: -0.025em;
+    }
+
+    .row {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .controls-row {
+      flex-direction: row;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px;
+      border-radius: 8px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    #startBtn {
+      background-color: var(--accent);
+      color: white;
+    }
+
+    #stopBtn {
+      background-color: #ef4444;
+      color: white;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .label-header {
+      display: flex;
+      justify-content: space-between;
+      color: #6b7280;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 6px;
+      background: var(--border);
+      border-radius: 3px;
+      appearance: none;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      background: var(--accent);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    meter {
+      width: 100%;
+      height: 8px;
+    }
+
+    .hint {
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    audio {
+      width: 100%;
+      height: 40px;
+    }
+
+    .track-list {
+      display: flex;
+      gap: 16px;
+      overflow-x: auto;
+      padding: 10px 0;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .track-list::after {
+      content: "";
+      flex: 0 0 20px;
+    }
+
+    .track-item {
+      flex: 0 0 85%;
+      scroll-snap-align: center;
+      aspect-ratio: 1 / 1;
+      background: #111827;
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      position: relative;
+      color: white;
+      text-align: center;
+      border: 4px solid transparent;
+      transition: all 0.3s ease;
+      background-size: cover;
+      background-position: center;
+      box-sizing: border-box;
+      overflow: hidden;
+    }
+
+    .track-item::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.8) 100%);
+      z-index: 1;
+    }
+
+    .track-item.active {
+      border-color: var(--accent);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+
+    .track-item .record-center {
+      width: 60px;
+      height: 60px;
+      background: #374151;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      border: 2px solid #4b5563;
+      z-index: 2;
+    }
+
+    .track-item .record-center::after {
+      content: "";
+      width: 12px;
+      height: 12px;
+      background: var(--bg);
+      border-radius: 50%;
+    }
+
+    .track-item .track-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 24px;
+      padding: 0 30px;
+      letter-spacing: -0.01em;
+      z-index: 2;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .track-item audio {
+      width: 85%;
+      height: 40px;
+      border-radius: 8px;
+      filter: invert(1) hue-rotate(180deg) brightness(1.5);
+      z-index: 2;
+    }
+
+    .result-section {
+      border-top: 1px solid var(--border);
+      padding-top: 24px;
+      margin-top: 8px;
+      display: none;
+    }
+
+    #downloadLink {
+      display: block;
+      text-align: center;
+      margin-top: 12px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 600;
+    }
+
+    details {
+      background: #f9fafb;
+      border-radius: 12px;
+      padding: 12px 16px;
+      border: 1px solid var(--border);
+    }
+
+    summary {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #4b5563;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    summary::-webkit-details-marker {
+      display: none;
+    }
+
+    summary::after {
+      content: "＋";
+      font-size: 0.8rem;
+      color: #9ca3af;
+    }
+
+    details[open] summary::after {
+      content: "－";
+    }
+
+    details .row:first-of-type {
+      margin-top: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h2>Recorder</h2>
+
+    <div class="row">
+      <label class="label-header">Select Backing Track</label>
+      <div id="trackList" class="track-list">
+        <!-- Tracks will be injected here -->
+      </div>
+      <audio id="backing" controls crossorigin="anonymous" style="display: none;"></audio>
+    </div>
+
+    <div class="row controls-row">
+      <button id="startBtn">Start Recording</button>
+      <button id="stopBtn" disabled>Stop</button>
+    </div>
+
+    <details>
+      <summary>Levels & Settings</summary>
+      <div class="row">
+        <label>
+          <div class="label-header">
+            <span>Mic level</span>
+            <span id="micLevelVal">4.00</span>
+          </div>
+          <input id="micLevel" type="range" min="0" max="5" step="0.05" value="4.00" />
+        </label>
+      </div>
+
+      <div class="row">
+        <label>
+          <div class="label-header">
+            <span>Backing level</span>
+            <span id="backingLevelVal">0.60</span>
+          </div>
+          <input id="backingLevel" type="range" min="0" max="2" step="0.01" value="0.6" />
+        </label>
+      </div>
+
+      <div class="row" style="flex-direction: row; align-items: center; justify-content: space-between; margin-top: 8px;">
+        <span style="font-size: 0.875rem; font-weight: 500; color: #6b7280;">Mute monitoring</span>
+        <input id="muteMonitoring" type="checkbox" style="width: 20px; height: 20px;" />
+      </div>
+    </details>
+
+    <div class="row">
+      <label>
+        <div class="label-header">
+          <span>VU Meter</span>
+          <span id="vuText">0.00</span>
+        </div>
+        <meter id="vu" min="0" max="1" low="0.6" high="0.85" optimum="0.4"></meter>
+      </label>
+    </div>
+
+    <div class="result-section row">
+      <label class="label-header">Recorded mix</label>
+      <audio id="result" controls></audio>
+      <a id="downloadLink" download style="display:none;">Download</a>
+    </div>
+
+    <div class="hint">
+      Use headphones to avoid feedback.<br/>
+      Keep VU below 0.85 for best quality.
+    </div>
+  </div>
+
+<script>
+const TRACKS = [
+  { 
+    name: "Slow Blues in E", 
+    url: "audio/slow_blues_backing_track_in_e.mp3",
+    img: "image/slow_blues_backing_track_in_e.png"
+  },
+  { 
+    name: "Jazz Swing (II V I)", 
+    url: "audio/Backing Track _ II V I _ E major _ Jazz Swing.mp3",
+    img: "image/Backing Track _ II V I _ E major _ Jazz Swing.png"
+  },
+  { 
+    name: "Indie Folk", 
+    url: "audio/Backing_Track_Indie_Folk_E_major.mp3",
+    img: "image/Backing_Track_Indie_Folk_E_major.png"
+  },
+  { 
+    name: "Neo-Soul Guitar", 
+    url: "audio/Deep Lofi Neo-Soul Guitar Backing Track _ E Minor.mp3",
+    img: "image/Deep Lofi Neo-Soul Guitar Backing Track _ E Minor.png"
+  }
+];
+
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const backingEl = document.getElementById("backing");
+const resultEl = document.getElementById("result");
+const downloadLink = document.getElementById("downloadLink");
+const trackListEl = document.getElementById("trackList");
+
+const micSlider = document.getElementById("micLevel");
+const micVal = document.getElementById("micLevelVal");
+const backingSlider = document.getElementById("backingLevel");
+const backingVal = document.getElementById("backingLevelVal");
+
+const vuMeter = document.getElementById("vu");
+const vuText = document.getElementById("vuText");
+const muteToggle = document.getElementById("muteMonitoring");
+
+let currentTrackUrl = TRACKS[0].url;
+
+function initTrackList() {
+  TRACKS.forEach((track, index) => {
+    const btn = document.createElement("div");
+    btn.className = `track-item${index === 0 ? ' active' : ''}`;
+    btn.style.backgroundImage = `url('${track.img}')`;
+    btn.innerHTML = `
+      <div class="record-center"></div>
+      <div class="track-name">${track.name}</div>
+    `;
+
+    if (index === 0) {
+      btn.appendChild(backingEl);
+      backingEl.style.display = 'block';
+    }
+
+    btn.onclick = () => {
+      if (btn.classList.contains('active')) return;
+      document.querySelectorAll('.track-item').forEach(el => el.classList.remove('active'));
+      btn.classList.add('active');
+      currentTrackUrl = track.url;
+      backingEl.src = track.url;
+      backingEl.style.display = 'block';
+      btn.appendChild(backingEl);
+      backingEl.load();
+    };
+    trackListEl.appendChild(btn);
+  });
+  backingEl.src = currentTrackUrl;
+}
+
+initTrackList();
+
+let audioCtx, micStream;
+let micGainNode, backingGainNode, mixBus, masterGain;
+let mixDest, analyser, mediaRecorder;
+let chunks = [];
+let rafId;
+
+function pickMimeType() {
+  const types = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg"
+  ];
+  return types.find(t => window.MediaRecorder?.isTypeSupported(t)) || "";
+}
+
+function updateSliderLabels() {
+  micVal.textContent = Number(micSlider.value).toFixed(2);
+  backingVal.textContent = Number(backingSlider.value).toFixed(2);
+}
+
+function startVuMeter() {
+  const buf = new Float32Array(analyser.fftSize);
+
+  const tick = () => {
+    analyser.getFloatTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+    const rms = Math.sqrt(sum / buf.length);
+
+    const smooth = vuMeter.value * 0.8 + rms * 0.2;
+    vuMeter.value = Math.min(1, smooth);
+    vuText.textContent = vuMeter.value.toFixed(2);
+
+    rafId = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+async function start() {
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  downloadLink.style.display = "none";
+  resultEl.src = "";
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  micStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false
+    }
+  });
+
+  const micSource = audioCtx.createMediaStreamSource(micStream);
+  const backingSource = audioCtx.createMediaElementSource(backingEl);
+
+  mixBus = audioCtx.createGain();
+  micGainNode = audioCtx.createGain();
+  backingGainNode = audioCtx.createGain();
+  masterGain = audioCtx.createGain();
+  
+  const monitorGain = audioCtx.createGain();
+  monitorGain.gain.value = muteToggle.checked ? 0 : 1;
+
+  micGainNode.gain.value = Number(micSlider.value);
+  backingGainNode.gain.value = Number(backingSlider.value);
+  masterGain.gain.value = 0.9;
+
+  // Mic goes to Mix (for recording) and Monitor (for headphones)
+  micSource.connect(micGainNode);
+  micGainNode.connect(mixBus);
+  micGainNode.connect(monitorGain);
+  
+  backingSource.connect(backingGainNode).connect(mixBus);
+
+  analyser = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+
+  mixDest = audioCtx.createMediaStreamDestination();
+
+  // Both signals go to the recording destination
+  mixBus.connect(mixDest);
+  
+  // Monitoring chain
+  mixBus.connect(analyser); // Analyser stays on mix bus to show levels
+  
+  // Backing always goes to destination, Mic only goes if not muted
+  backingGainNode.connect(audioCtx.destination);
+  monitorGain.connect(audioCtx.destination);
+
+  updateSliderLabels();
+
+  muteToggle.onchange = () => {
+    monitorGain.gain.setTargetAtTime(muteToggle.checked ? 0 : 1, audioCtx.currentTime, 0.05);
+  };
+
+  micSlider.oninput = () => micGainNode.gain.value = Number(micSlider.value);
+  backingSlider.oninput = () => backingGainNode.gain.value = Number(backingSlider.value);
+
+  chunks = [];
+  mediaRecorder = new MediaRecorder(mixDest.stream, { mimeType: pickMimeType() });
+
+  mediaRecorder.ondataavailable = e => e.data.size && chunks.push(e.data);
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: mediaRecorder.mimeType });
+    const url = URL.createObjectURL(blob);
+    resultEl.src = url;
+    downloadLink.href = url;
+    downloadLink.textContent = `Download (${blob.type})`;
+    downloadLink.style.display = "inline-block";
+    document.querySelector('.result-section').style.display = "flex";
+  };
+
+  mediaRecorder.start();
+  backingEl.currentTime = 0;
+  await backingEl.play();
+  startVuMeter();
+}
+
+function stop() {
+  stopBtn.disabled = true;
+  startBtn.disabled = false;
+
+  backingEl.pause();
+  mediaRecorder?.stop();
+  micStream?.getTracks().forEach(t => t.stop());
+  audioCtx?.close();
+
+  if (rafId) cancelAnimationFrame(rafId);
+  vuMeter.value = 0;
+  vuText.textContent = "0.00";
+}
+
+startBtn.onclick = () => start().catch(err => {
+  alert(err.message || err);
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+});
+stopBtn.onclick = stop;
+</script>
+</body>
+</html>
