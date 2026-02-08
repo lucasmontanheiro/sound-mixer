@@ -1,0 +1,209 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Option A: Live Mix Recorder (3 Buttons)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 760px; margin: 0 auto; padding: 16px; }
+    button { padding: 10px 14px; margin: 6px 8px 6px 0; font-size: 1rem; }
+    .row { margin: 14px 0; }
+    audio { width: 100%; margin-top: 8px; }
+    .hint { color:#444; font-size: 0.95rem; line-height: 1.35; }
+    .box { padding: 12px; border: 1px solid #ddd; border-radius: 10px; }
+    code { background:#f6f6f6; padding: 2px 6px; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h2>🎚️ Option A: Live Mix Recording (3 Trigger Buttons)</h2>
+
+  <div class="row hint box">
+    - Click <b>Start</b> → background music starts + recording starts.<br/>
+    - Click any trigger button → sound plays on top (multiple presses overlap).<br/>
+    - Click <b>Stop</b> → you get a recording of the full mix.<br/>
+    <br/>
+    Tip: use Chrome/Edge desktop for easiest testing.
+  </div>
+
+  <div class="row">
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+  </div>
+
+  <div class="row box">
+    <div><b>Triggers</b></div>
+    <button id="btn1" disabled>Trigger 1</button>
+    <button id="btn2" disabled>Trigger 2</button>
+    <button id="btn3" disabled>Trigger 3</button>
+  </div>
+
+  <div class="row">
+    <b>Recorded result (mix):</b>
+    <audio id="result" controls></audio>
+    <div class="row">
+      <a id="downloadLink" download style="display:none;">Download recording</a>
+    </div>
+  </div>
+
+<script>
+/**
+ * Replace these URLs with your own audio files if you want.
+ * - BACKING: starts on Start() and loops
+ * - SFX1/2/3: play each time you press a trigger button
+ */
+const BACKING_URL = "https://raw.githubusercontent.com/lucasmontanheiro/static/main/hino-corinthians.mp3";
+
+// Three sample SFX (small, common demo files). If any fail due to CORS, swap URLs.
+const SFX1_URL = "audio/Backing Track _ II V I _ E major _ Jazz Swing.mp3";
+const SFX2_URL = "audio/Backing_Track_Indie_Folk_E_major.mp3";
+const SFX3_URL = "audio/slow_blues_backing_track_in_e.mp3"; // reuse if you want
+
+const startBtn = document.getElementById("startBtn");
+const stopBtn = document.getElementById("stopBtn");
+const btn1 = document.getElementById("btn1");
+const btn2 = document.getElementById("btn2");
+const btn3 = document.getElementById("btn3");
+
+const resultEl = document.getElementById("result");
+const downloadLink = document.getElementById("downloadLink");
+
+let audioCtx;
+let mixBus, mixDest;
+let mediaRecorder;
+let chunks = [];
+
+let backingBuffer, sfx1Buffer, sfx2Buffer, sfx3Buffer;
+let backingSource; // currently playing backing source
+
+function pickBestMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg"
+  ];
+  for (const t of candidates) {
+    if (window.MediaRecorder && MediaRecorder.isTypeSupported(t)) return t;
+  }
+  return "";
+}
+
+async function fetchDecode(url) {
+  if (!url) return null;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch ${url}: ${res.status}`);
+  const arr = await res.arrayBuffer();
+  try {
+    return await audioCtx.decodeAudioData(arr);
+  } catch (e) {
+    console.warn(`Could not decode audio from ${url}`, e);
+    return null;
+  }
+}
+
+function playBuffer(buffer, when = 0, gainValue = 1.0) {
+  if (!buffer) return null;
+  const src = audioCtx.createBufferSource();
+  src.buffer = buffer;
+
+  const gain = audioCtx.createGain();
+  gain.gain.value = gainValue;
+
+  src.connect(gain).connect(mixBus);
+  src.start(audioCtx.currentTime + when);
+
+  return src;
+}
+
+async function start() {
+  startBtn.disabled = true;
+  stopBtn.disabled = false;
+  btn1.disabled = btn2.disabled = btn3.disabled = false;
+
+  downloadLink.style.display = "none";
+  resultEl.removeAttribute("src");
+  resultEl.load();
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Mix bus: everything goes here
+  mixBus = audioCtx.createGain();
+  mixBus.gain.value = 0.9; // a bit of headroom to reduce clipping
+  mixBus.connect(audioCtx.destination);
+
+  // Recording destination: record the exact same mix
+  mixDest = audioCtx.createMediaStreamDestination();
+  mixBus.connect(mixDest);
+
+  // Load audio files
+  [backingBuffer, sfx1Buffer, sfx2Buffer, sfx3Buffer] = await Promise.all([
+    fetchDecode(BACKING_URL),
+    fetchDecode(SFX1_URL),
+    fetchDecode(SFX2_URL),
+    fetchDecode(SFX3_URL),
+  ]);
+
+  // Start recorder
+  chunks = [];
+  const mimeType = pickBestMimeType();
+  mediaRecorder = new MediaRecorder(mixDest.stream, mimeType ? { mimeType } : undefined);
+
+  mediaRecorder.ondataavailable = (e) => {
+    if (e.data && e.data.size > 0) chunks.push(e.data);
+  };
+
+  mediaRecorder.onstop = () => {
+    const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+    const url = URL.createObjectURL(blob);
+    resultEl.src = url;
+
+    downloadLink.href = url;
+    downloadLink.textContent = `Download (${blob.type || "audio"})`;
+    downloadLink.style.display = "inline-block";
+  };
+
+  mediaRecorder.start();
+
+  // Start looping backing track
+  backingSource = playBuffer(backingBuffer, 0, 1.0);
+  if (backingSource) {
+    backingSource.loop = true;
+  }
+}
+
+function stop() {
+  stopBtn.disabled = true;
+  startBtn.disabled = false;
+  btn1.disabled = btn2.disabled = btn3.disabled = true;
+
+  try { backingSource?.stop(); } catch {}
+  backingSource = null;
+
+  if (mediaRecorder && mediaRecorder.state !== "inactive") {
+    mediaRecorder.stop();
+  }
+
+  if (audioCtx) {
+    audioCtx.close();
+    audioCtx = null;
+  }
+}
+
+btn1.onclick = () => { if (sfx1Buffer) playBuffer(sfx1Buffer, 0, 1.0); };
+btn2.onclick = () => { if (sfx2Buffer) playBuffer(sfx2Buffer, 0, 1.0); };
+btn3.onclick = () => { if (sfx3Buffer) playBuffer(sfx3Buffer, 0, 1.0); };
+
+startBtn.onclick = () => {
+  start().catch(err => {
+    console.error(err);
+    alert(err.message || String(err));
+    startBtn.disabled = false;
+    stopBtn.disabled = true;
+    btn1.disabled = btn2.disabled = btn3.disabled = true;
+  });
+};
+
+stopBtn.onclick = stop;
+</script>
+</body>
+</html>
