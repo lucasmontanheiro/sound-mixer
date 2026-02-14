@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
-  <title>Sound Mixer | Pro</title>
+  <title>WeJam.pro</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <style>
@@ -76,6 +76,10 @@
       background: rgba(249, 115, 22, 0.1);
     }
 
+    #sidebar.open {
+      transform: translateX(0);
+    }
+
     /* Hide scrollbar for track list */
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -89,133 +93,144 @@
       <div class="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
         <i data-lucide="waves" class="w-5 h-5 text-slate-900"></i>
       </div>
-      <h1 class="text-xl font-bold tracking-tight">SoundMixer<span class="text-orange-500">PRO</span></h1>
+      <h1 class="text-xl font-bold tracking-tight">WeJam<span class="text-orange-500">.pro</span></h1>
     </div>
     <button id="settingsToggle" class="p-2 rounded-full hover:bg-white/5 transition-colors">
       <i data-lucide="sliders-horizontal" class="w-6 h-6 text-slate-400"></i>
     </button>
   </header>
 
-  <main class="flex-grow flex flex-col p-4 md:p-8 max-w-2xl mx-auto w-full gap-8">
-    
-    <!-- Backing Track Selector -->
-    <section class="space-y-4">
-      <div class="flex justify-between items-end">
-        <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Backing Track</h2>
-        <label class="text-xs text-orange-500 font-medium cursor-pointer hover:underline">
-          <input type="file" id="customFile" class="hidden" accept="audio/*" />
-          + Upload Custom
-        </label>
-      </div>
+  <div class="flex-grow flex flex-col md:flex-row overflow-hidden relative">
+    <main class="flex-grow flex flex-col p-4 md:p-8 max-w-2xl mx-auto w-full gap-8 overflow-y-auto">
       
-      <div id="trackList" class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
-        <!-- Tracks injected here -->
-      </div>
-
-      <div id="waveformContainer" class="h-16 w-full glass-panel rounded-xl overflow-hidden relative">
-        <canvas id="waveformCanvas" class="w-full h-full opacity-50"></canvas>
-        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <span id="trackNameDisplay" class="text-xs font-medium text-slate-300">Select a track to preview</span>
-        </div>
-      </div>
-      <audio id="backing" crossorigin="anonymous" class="hidden"></audio>
-    </section>
-
-    <!-- Jam Zone -->
-    <section class="flex-grow flex flex-col items-center justify-center py-8">
-      <div class="relative">
-        <button id="recordBtn" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center transition-all active:scale-95 record-glow group">
-          <div id="recordIcon" class="w-12 h-12 rounded-full bg-orange-500 group-hover:bg-orange-400 transition-colors"></div>
-        </button>
-        <div id="recordingTimer" class="absolute -bottom-8 left-1/2 -translate-x-1/2 font-mono text-sm text-slate-400 hidden">
-          00:00:00
-        </div>
-      </div>
-    </section>
-
-    <!-- Mixer Console -->
-    <section class="glass-panel p-6 rounded-3xl space-y-8">
-      <!-- VU Meters (No-Squint) -->
-      <div class="space-y-4">
-        <div class="space-y-1">
-          <div class="flex justify-between text-[10px] uppercase font-bold text-slate-500 mb-1">
-            <span>Input Level</span>
-            <span id="vuText">0.00</span>
-          </div>
-          <div class="h-3 w-full bg-slate-900 rounded-full overflow-hidden p-[2px]">
-            <div id="vuBar" class="vu-bar h-full w-0 bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500 rounded-full"></div>
-          </div>
-        </div>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <!-- Mic Level -->
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2">
-              <i data-lucide="mic" class="w-4 h-4 text-orange-500"></i>
-              <span class="text-sm font-semibold">Microphone</span>
-            </div>
-            <span id="micLevelVal" class="text-xs font-mono text-slate-400">2.00</span>
-          </div>
-          <input id="micLevel" type="range" min="0" max="5" step="0.05" value="2.00" class="w-full" />
-        </div>
-
-        <!-- Backing Level -->
-        <div class="space-y-3">
-          <div class="flex justify-between items-center">
-            <div class="flex items-center gap-2">
-              <i data-lucide="music" class="w-4 h-4 text-orange-500"></i>
-              <span class="text-sm font-semibold">Backing</span>
-            </div>
-            <span id="backingLevelVal" class="text-xs font-mono text-slate-400">0.60</span>
-          </div>
-          <input id="backingLevel" type="range" min="0" max="2" step="0.01" value="0.60" class="w-full" />
-        </div>
-      </div>
-
-      <!-- Mute Monitoring Toggle -->
-      <div class="flex items-center justify-between pt-4 border-t border-white/5">
-        <div class="flex items-center gap-2">
-          <i data-lucide="headphones" class="w-4 h-4 text-slate-400"></i>
-          <span class="text-sm text-slate-300 font-medium">Monitoring</span>
-        </div>
-        <label class="relative inline-flex items-center cursor-pointer">
-          <input id="muteMonitoring" type="checkbox" checked class="sr-only peer">
-          <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-          <span class="ml-3 text-xs font-medium text-slate-400">Mute</span>
-        </label>
-      </div>
-    </section>
-
-    <!-- Results Modal Overlay -->
-    <div id="resultModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden animate-in fade-in duration-300">
-      <div class="glass-panel w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border-orange-500/20 flex flex-col items-center gap-6 scale-95 animate-in zoom-in-95 duration-300">
-        <div class="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/20">
-          <i data-lucide="check" class="w-10 h-10 text-slate-900"></i>
+      <!-- Backing Track Selector -->
+      <section class="space-y-4">
+        <div class="flex justify-between items-end">
+          <h2 class="text-sm font-semibold text-slate-400 uppercase tracking-wider">Backing Track</h2>
+          <label class="text-xs text-orange-500 font-medium cursor-pointer hover:underline">
+            <input type="file" id="customFile" class="hidden" accept="audio/*" />
+            + Upload Custom
+          </label>
         </div>
         
-        <div class="text-center space-y-1">
-          <h3 class="text-2xl font-bold tracking-tight">Recording Ready</h3>
-          <p class="text-slate-400 text-sm">Your masterpiece is ready to share.</p>
+        <div id="trackList" class="flex gap-4 overflow-x-auto no-scrollbar pb-2">
+          <!-- Tracks injected here -->
         </div>
 
-        <div class="w-full space-y-4">
-          <audio id="result" controls class="w-full h-10 brightness-90 contrast-125"></audio>
+        <div id="waveformContainer" class="h-16 w-full glass-panel rounded-xl overflow-hidden relative">
+          <canvas id="waveformCanvas" class="w-full h-full opacity-50"></canvas>
+          <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span id="trackNameDisplay" class="text-xs font-medium text-slate-300">Select a track to preview</span>
+          </div>
+        </div>
+        <audio id="backing" crossorigin="anonymous" class="hidden"></audio>
+      </section>
+
+      <!-- Jam Zone -->
+      <section class="flex-grow flex flex-col items-center justify-center py-8">
+        <div class="relative">
+          <button id="recordBtn" class="w-32 h-32 md:w-40 md:h-40 rounded-full bg-slate-800 border-4 border-slate-700 flex items-center justify-center transition-all active:scale-95 record-glow group">
+            <div id="recordIcon" class="w-12 h-12 rounded-full bg-orange-500 group-hover:bg-orange-400 transition-colors"></div>
+          </button>
+          <div id="recordingTimer" class="absolute -bottom-8 left-1/2 -translate-x-1/2 font-mono text-sm text-slate-400 hidden">
+            00:00:00
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Modal Overlay -->
+      <div id="resultModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden animate-in fade-in duration-300">
+        <div class="glass-panel w-full max-w-sm rounded-[2.5rem] p-8 shadow-2xl border-orange-500/20 flex flex-col items-center gap-6 scale-95 animate-in zoom-in-95 duration-300">
+          <div class="w-20 h-20 bg-orange-500 rounded-full flex items-center justify-center shadow-lg shadow-orange-500/20">
+            <i data-lucide="check" class="w-10 h-10 text-slate-900"></i>
+          </div>
           
-          <div class="grid grid-cols-2 gap-3 pt-2">
-            <button id="closeModal" class="px-4 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-sm font-bold uppercase tracking-wider transition-colors">
-              Dismiss
-            </button>
-            <a id="downloadLink" download class="px-4 py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-slate-900 text-sm font-bold uppercase tracking-wider text-center transition-colors flex items-center justify-center gap-2">
-              <i data-lucide="share-2" class="w-4 h-4"></i>
-              Share
-            </a>
+          <div class="text-center space-y-1">
+            <h3 class="text-2xl font-bold tracking-tight">Recording Ready</h3>
+            <p class="text-slate-400 text-sm">Your masterpiece is ready to share.</p>
+          </div>
+
+          <div class="w-full space-y-4">
+            <audio id="result" controls class="w-full h-10 brightness-90 contrast-125"></audio>
+            
+            <div class="grid grid-cols-2 gap-3 pt-2">
+              <button id="closeModal" class="px-4 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-sm font-bold uppercase tracking-wider transition-colors">
+                Dismiss
+              </button>
+              <a id="downloadLink" download class="px-4 py-4 rounded-2xl bg-orange-500 hover:bg-orange-600 text-slate-900 text-sm font-bold uppercase tracking-wider text-center transition-colors flex items-center justify-center gap-2">
+                <i data-lucide="share-2" class="w-4 h-4"></i>
+                Share
+              </a>
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  </main>
+    </main>
+
+    <!-- Sidebar Mixer Console -->
+    <aside id="sidebar" class="fixed inset-y-0 right-0 w-80 glass-panel border-l border-white/10 z-40 transform translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+      <div class="p-6 border-b border-white/5 flex justify-between items-center">
+        <h2 class="text-lg font-bold">Mixer Console</h2>
+        <button id="closeSidebar" class="md:hidden p-2 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 space-y-8 overflow-y-auto">
+        <!-- VU Meters (No-Squint) -->
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <div class="flex justify-between text-[10px] uppercase font-bold text-slate-500 mb-1">
+              <span>Input Level</span>
+              <span id="vuText">0.00</span>
+            </div>
+            <div class="h-3 w-full bg-slate-900 rounded-full overflow-hidden p-[2px]">
+              <div id="vuBar" class="vu-bar h-full w-0 bg-gradient-to-r from-emerald-500 via-yellow-500 to-red-500 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="space-y-8">
+          <!-- Mic Level -->
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <i data-lucide="mic" class="w-4 h-4 text-orange-500"></i>
+                <span class="text-sm font-semibold">Microphone</span>
+              </div>
+              <span id="micLevelVal" class="text-xs font-mono text-slate-400">2.00</span>
+            </div>
+            <input id="micLevel" type="range" min="0" max="5" step="0.05" value="2.00" class="w-full" />
+          </div>
+
+          <!-- Backing Level -->
+          <div class="space-y-3">
+            <div class="flex justify-between items-center">
+              <div class="flex items-center gap-2">
+                <i data-lucide="music" class="w-4 h-4 text-orange-500"></i>
+                <span class="text-sm font-semibold">Backing</span>
+              </div>
+              <span id="backingLevelVal" class="text-xs font-mono text-slate-400">0.60</span>
+            </div>
+            <input id="backingLevel" type="range" min="0" max="2" step="0.01" value="0.60" class="w-full" />
+          </div>
+        </div>
+
+        <!-- Mute Monitoring Toggle -->
+        <div class="flex items-center justify-between pt-4 border-t border-white/5">
+          <div class="flex items-center gap-2">
+            <i data-lucide="headphones" class="w-4 h-4 text-slate-400"></i>
+            <span class="text-sm text-slate-300 font-medium">Monitoring</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input id="muteMonitoring" type="checkbox" checked class="sr-only peer">
+            <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+            <span class="ml-3 text-xs font-medium text-slate-400">Mute</span>
+          </label>
+        </div>
+      </div>
+    </aside>
+  </div>
 
   <!-- Footer Actions -->
   <footer class="p-6 pb-10 flex justify-center gap-6 border-t border-white/5 bg-slate-900/50">
@@ -524,6 +539,19 @@ document.getElementById('playbackBtn').onclick = () => {
   } else {
     alert("Record something first!");
   }
+};
+
+// Sidebar Logic
+const sidebar = document.getElementById('sidebar');
+const settingsToggle = document.getElementById('settingsToggle');
+const closeSidebar = document.getElementById('closeSidebar');
+
+settingsToggle.onclick = () => {
+  sidebar.classList.toggle('open');
+};
+
+closeSidebar.onclick = () => {
+  sidebar.classList.remove('open');
 };
 
 // Initialize

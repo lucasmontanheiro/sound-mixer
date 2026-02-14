@@ -1,9 +1,9 @@
-# Project Context: Sound Mixer (PRO)
+# Project Context: WeJam.pro
 
-This file provides context and technical details for AI agents working on the Sound Mixer Pro project.
+This file provides context and technical details for AI agents working on the WeJam.pro project.
 
 ## Project Overview
-The **Sound Mixer Pro** is a high-fidelity, mobile-first web application designed for musicians (specifically guitarists) to record live performances over backing tracks. It features a "DAW-inspired" dark interface, real-time VU metering, and a seamless "Jam Zone" workflow.
+The **WeJam.pro** is a high-fidelity, mobile-first web application designed for musicians (specifically guitarists) to record live performances over backing tracks. It features a "DAW-inspired" dark interface, real-time VU metering, and a seamless "Jam Zone" workflow.
 
 ## Technical Architecture
 Built with standard web technologies (HTML/JS/Tailwind CSS), leveraging the **Web Audio API** for low-latency signal processing.

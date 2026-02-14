@@ -1,4 +1,4 @@
-# Sound Mixer Pro 🎸
+# WeJam.pro 🎸
 
 A minimalist, high-performance web DAW designed for guitarists and vocalists to jam and record over backing tracks instantly.
 
